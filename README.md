@@ -6,14 +6,14 @@
 Программа строит граф зависимостей пакета Ubuntu (формат apt). Данные
 берутся прямо из индекса репозитория, без apt и сторонних библиотек.
 
-Сделаны этапы 1–3: параметры командной строки и их проверка, получение
+Сделаны этапы 1–4: параметры командной строки и их проверка, получение
 зависимостей из репозитория Ubuntu, полный граф зависимостей с учётом
-циклов и тестовый режим.
+циклов, тестовый режим и обратные зависимости.
 
 ## Параметры
 
 ```
-./run.sh --package ИМЯ --repo URL_ИЛИ_ФАЙЛ [--test] [--version ВЕРСИЯ] [--output ФАЙЛ.png]
+./run.sh --package ИМЯ --repo URL_ИЛИ_ФАЙЛ [--test] [--version ВЕРСИЯ] [--output ФАЙЛ.png] [--reverse]
 ```
 
 | Параметр | Что это | Проверка |
@@ -23,6 +23,7 @@
 | `--test` | режим тестового репозитория | флаг |
 | `--version` | версия пакета | необязателен; начинается с цифры, без пробелов |
 | `--output` | файл с картинкой графа | по умолчанию `graph.png`; расширение `.png`, папка должна существовать |
+| `--reverse` | показать обратные зависимости | флаг |
 
 Параметры проверяются библиотекой pydantic. При ошибке печатается
 сообщение `error: ...` и программа завершается с кодом 1. Если не указан
@@ -92,6 +93,28 @@ Dependency graph of A:
 Packages in cycles: A, B, C
 ```
 
+## Обратные зависимости
+
+С флагом `--reverse` программа показывает не то, от чего зависит пакет,
+а **кто зависит от него** — прямо или через другие пакеты.
+
+Для этого все рёбра репозитория «переворачиваются»: если `A` зависит
+от `B`, получается ребро `B <- A`. Затем запускается тот же обход в
+ширину, что и для обычного графа, только по перевёрнутым рёбрам.
+
+```
+$ ./run.sh --package D --repo repos/diamond.txt --test --reverse
+Reverse dependencies of D (3):
+  D <- B, C
+  B <- A
+  C <- A
+  A <- (none)
+```
+
+`D <- B, C` — от `D` напрямую зависят `B` и `C`; `B <- A` — от `B`
+зависит `A`, значит `A` зависит от `D` транзитивно. Число в заголовке —
+сколько всего пакетов зависят от `D`.
+
 ## Тестовый режим
 
 С флагом `--test` вместо репозитория Ubuntu читается текстовый файл.
@@ -135,6 +158,7 @@ uv run ruff check src tests  # линтер
 sh scripts/stage1.sh         # демонстрация этапа 1
 sh scripts/stage2.sh         # демонстрация этапа 2 (нужен интернет)
 sh scripts/stage3.sh         # демонстрация этапа 3
+sh scripts/stage4.sh         # демонстрация этапа 4
 ```
 
 ## Пример работы
@@ -164,6 +188,16 @@ Dependency graph of A:
   H -> B
   Z -> (none)
 Packages in cycles: B, C, E, F, H
+
+$ ./run.sh --package curl --repo http://archive.ubuntu.com/ubuntu/dists/noble/main/binary-amd64/Packages.gz --reverse
+Reverse dependencies of curl (6):
+  curl <- ec2-instance-connect, pollinate, ubuntu-server, ubuntu-wsl
+  ec2-instance-connect <- (none)
+  pollinate <- ubuntu-cloud-minimal, ubuntu-server, ubuntu-server-minimal
+  ubuntu-server <- (none)
+  ubuntu-wsl <- (none)
+  ubuntu-cloud-minimal <- (none)
+  ubuntu-server-minimal <- (none)
 
 $ ./run.sh --package A --repo repos/broken.txt --test
 error: repos/broken.txt:2: expected 'NAME: DEPENDENCIES' with capital Latin letters, got 'b: C'
