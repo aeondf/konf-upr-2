@@ -109,6 +109,10 @@ class AptRepository(Repository):
         real = [self._real_name(name) for name in names]
         return list(dict.fromkeys(real))
 
+    def names(self) -> list[str]:
+        """Возвращает имена всех пакетов индекса."""
+        return list(self.packages)
+
     def _real_name(self, name: str) -> str:
         if name in self.packages:
             return name

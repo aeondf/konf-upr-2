@@ -19,3 +19,7 @@ class Repository:
     def dependencies(self, name: str) -> list[str]:
         """Возвращает прямые зависимости пакета."""
         raise NotImplementedError
+
+    def names(self) -> list[str]:
+        """Возвращает имена всех пакетов репозитория."""
+        raise NotImplementedError

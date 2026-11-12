@@ -1,6 +1,6 @@
 """Тесты обхода в ширину и графа зависимостей."""
 
-from depgraph.graph import DependencyGraph, bfs
+from depgraph.graph import DependencyGraph, bfs, reverse_edges
 
 DIAMOND = {"A": ["B", "C"], "B": ["D"], "C": ["D"], "D": []}
 CYCLE = {"D": ["A"], "A": ["B"], "B": ["C"], "C": ["A"]}
@@ -64,3 +64,24 @@ def test_self_dependency() -> None:
     """Пакет, зависящий сам от себя, — тоже цикл."""
     graph = DependencyGraph("A", neighbours({"A": ["A", "B"]}))
     assert graph.cyclic() == ["A"]
+
+
+def test_reverse_edges() -> None:
+    """Рёбра переворачиваются: от зависимости к зависящим пакетам."""
+    reverse = reverse_edges(list(DIAMOND), neighbours(DIAMOND))
+    assert reverse == {"B": ["A"], "C": ["A"], "D": ["B", "C"]}
+
+
+def test_reverse_graph_is_transitive() -> None:
+    """От D зависят B и C напрямую и A через них."""
+    reverse = reverse_edges(list(DIAMOND), neighbours(DIAMOND))
+    graph = DependencyGraph("D", neighbours(reverse))
+    assert list(graph.edges) == ["D", "B", "C", "A"]
+    assert graph.lines("<-")[0] == "D <- B, C"
+
+
+def test_reverse_graph_with_cycle() -> None:
+    """Обратный обход тоже не зацикливается."""
+    reverse = reverse_edges(list(CYCLE), neighbours(CYCLE))
+    graph = DependencyGraph("A", neighbours(reverse))
+    assert set(graph.edges) == {"A", "B", "C", "D"}

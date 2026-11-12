@@ -61,3 +61,8 @@ def test_empty_file(tmp_path: Path) -> None:
     """Файл без пакетов — ошибка."""
     with pytest.raises(RepositoryError, match="no packages"):
         load(tmp_path, "# пусто\n")
+
+
+def test_names(tmp_path: Path) -> None:
+    """Список пакетов включает и неописанные."""
+    assert load(tmp_path, "A: B\n").names() == ["A", "B"]

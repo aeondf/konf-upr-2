@@ -19,6 +19,17 @@ def bfs(start: str, neighbours: Neighbours) -> dict[str, list[str]]:
     return edges
 
 
+def reverse_edges(
+    names: list[str], neighbours: Neighbours
+) -> dict[str, list[str]]:
+    """Переворачивает рёбра: пакет → пакеты, которые от него зависят."""
+    reverse: dict[str, list[str]] = {}
+    for name in names:
+        for dependency in neighbours(name):
+            reverse.setdefault(dependency, []).append(name)
+    return reverse
+
+
 class DependencyGraph:
     """Граф зависимостей: пакет → пакеты, от которых он зависит."""
 
@@ -27,12 +38,12 @@ class DependencyGraph:
         self.root = root
         self.edges = bfs(root, neighbours)
 
-    def lines(self) -> list[str]:
-        """Возвращает граф построчно: «пакет -> зависимости»."""
+    def lines(self, arrow: str = "->") -> list[str]:
+        """Возвращает граф построчно: «пакет -> соседи»."""
         result = []
         for name, dependencies in self.edges.items():
             targets = ", ".join(dependencies) if dependencies else "(none)"
-            result.append(f"{name} -> {targets}")
+            result.append(f"{name} {arrow} {targets}")
         return result
 
     def cyclic(self) -> list[str]:

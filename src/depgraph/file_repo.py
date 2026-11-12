@@ -39,6 +39,10 @@ class FileRepository(Repository):
         """Возвращает прямые зависимости пакета."""
         return self.packages.get(name, [])
 
+    def names(self) -> list[str]:
+        """Возвращает имена всех пакетов графа."""
+        return list(self.packages)
+
     def _add(self, line: str, number: int) -> None:
         name, colon, rest = line.partition(":")
         names = [name.strip(), *rest.split()]
