@@ -6,7 +6,9 @@ from pydantic import ValidationError
 
 from depgraph.apt import AptRepository
 from depgraph.config import Config
-from depgraph.repository import RepositoryError
+from depgraph.file_repo import FileRepository
+from depgraph.graph import DependencyGraph
+from depgraph.repository import Repository, RepositoryError
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -41,21 +43,22 @@ def load_config() -> Config | None:
         return None
 
 
-def show_direct_dependencies(config: Config) -> int:
-    """Печатает прямые зависимости пакета из репозитория Ubuntu."""
-    repository = AptRepository(config.repo)
-    try:
-        repository.load()
-        version = repository.select(config.package, config.version)
-    except RepositoryError as error:
-        print(f"error: {error}")
-        return 1
-    dependencies = repository.dependencies(config.package)
-    print(f"Package: {config.package} {version}")
-    print(f"Direct dependencies ({len(dependencies)}):")
-    for name in dependencies:
-        print(f"  {name}")
-    return 0
+def make_repository(config: Config) -> Repository:
+    """Создаёт тестовый или настоящий репозиторий в зависимости от режима."""
+    if config.test:
+        return FileRepository(config.repo)
+    return AptRepository(config.repo)
+
+
+def show_graph(repository: Repository, package: str, version: str) -> None:
+    """Печатает граф зависимостей пакета и пакеты в циклах."""
+    graph = DependencyGraph(package, repository.dependencies)
+    print(f"Dependency graph of {package} {version}".rstrip() + ":")
+    for line in graph.lines():
+        print(f"  {line}")
+    cyclic = graph.cyclic()
+    if cyclic:
+        print(f"Packages in cycles: {', '.join(cyclic)}")
 
 
 def main() -> int:
@@ -63,10 +66,15 @@ def main() -> int:
     config = load_config()
     if config is None:
         return 1
-    if config.test:
-        print("error: test mode is not supported yet")
+    repository = make_repository(config)
+    try:
+        repository.load()
+        version = repository.select(config.package, config.version)
+    except RepositoryError as error:
+        print(f"error: {error}")
         return 1
-    return show_direct_dependencies(config)
+    show_graph(repository, config.package, version)
+    return 0
 
 
 if __name__ == "__main__":
