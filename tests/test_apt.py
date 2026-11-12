@@ -118,3 +118,8 @@ def test_empty_index(tmp_path: Path) -> None:
     path.write_text("hello\n")
     with pytest.raises(RepositoryError, match="no packages"):
         make_repository(path.as_uri())
+
+
+def test_virtual_package_is_replaced(repository: AptRepository) -> None:
+    """Виртуальный пакет заменяется настоящим, повторы убираются."""
+    assert repository.dependencies("librtmp1") == ["libc6", "libssl3t64"]

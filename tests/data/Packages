@@ -26,3 +26,14 @@ Package: libgcc-s1
 Architecture: amd64
 Version: 14-20240412-0ubuntu1
 Depends: gcc-14-base, libc6 (>= 2.35)
+
+Package: libssl3t64
+Architecture: amd64
+Version: 3.0.13-0ubuntu3
+Provides: libssl3 (= 3.0.13-0ubuntu3)
+Depends: libc6 (>= 2.34)
+
+Package: librtmp1
+Architecture: amd64
+Version: 2.4+20151223.gitfa8646d.1-2build7
+Depends: libc6 (>= 2.14), libssl3 (>= 3.0.0), libssl3t64

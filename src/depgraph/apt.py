@@ -62,6 +62,15 @@ def parse_depends(value: str) -> list[str]:
     return names
 
 
+def find_providers(packages: dict[str, list[dict[str, str]]]) -> dict[str, str]:
+    """Сопоставляет виртуальному пакету настоящий из поля Provides."""
+    providers: dict[str, str] = {}
+    for name, versions in packages.items():
+        for virtual in parse_depends(versions[-1].get("Provides", "")):
+            providers.setdefault(virtual, name)
+    return providers
+
+
 class AptRepository(Repository):
     """Индекс пакетов настоящего репозитория Ubuntu."""
 
@@ -69,12 +78,14 @@ class AptRepository(Repository):
         """Запоминает адрес файла Packages."""
         self.url = url
         self.packages: dict[str, list[dict[str, str]]] = {}
+        self.providers: dict[str, str] = {}
 
     def load(self) -> None:
         """Скачивает и разбирает индекс пакетов."""
         self.packages = parse_packages(download(self.url))
         if not self.packages:
             raise RepositoryError(f"{self.url}: no packages found")
+        self.providers = find_providers(self.packages)
 
     def select(self, name: str, version: str | None) -> str:
         """Оставляет у пакета только нужную версию и возвращает её."""
@@ -94,7 +105,14 @@ class AptRepository(Repository):
             return []
         fields = versions[-1]
         pre_depends = fields.get("Pre-Depends", "")
-        return parse_depends(pre_depends + "," + fields.get("Depends", ""))
+        names = parse_depends(pre_depends + "," + fields.get("Depends", ""))
+        real = [self._real_name(name) for name in names]
+        return list(dict.fromkeys(real))
+
+    def _real_name(self, name: str) -> str:
+        if name in self.packages:
+            return name
+        return self.providers.get(name, name)
 
     def _find_version(
         self, name: str, version: str, versions: list[dict[str, str]]
