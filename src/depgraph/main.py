@@ -4,7 +4,9 @@ import argparse
 
 from pydantic import ValidationError
 
+from depgraph.apt import AptRepository
 from depgraph.config import Config
+from depgraph.repository import RepositoryError
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -39,14 +41,32 @@ def load_config() -> Config | None:
         return None
 
 
+def show_direct_dependencies(config: Config) -> int:
+    """Печатает прямые зависимости пакета из репозитория Ubuntu."""
+    repository = AptRepository(config.repo)
+    try:
+        repository.load()
+        version = repository.select(config.package, config.version)
+    except RepositoryError as error:
+        print(f"error: {error}")
+        return 1
+    dependencies = repository.dependencies(config.package)
+    print(f"Package: {config.package} {version}")
+    print(f"Direct dependencies ({len(dependencies)}):")
+    for name in dependencies:
+        print(f"  {name}")
+    return 0
+
+
 def main() -> int:
     """Запускает программу и возвращает код завершения."""
     config = load_config()
     if config is None:
         return 1
-    for key, value in config.model_dump().items():
-        print(f"{key}={value}")
-    return 0
+    if config.test:
+        print("error: test mode is not supported yet")
+        return 1
+    return show_direct_dependencies(config)
 
 
 if __name__ == "__main__":
