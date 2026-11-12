@@ -76,3 +76,38 @@ def test_error_message(
     code = run_main(monkeypatch, "--package", "Bad!", "--repo", URL)
     assert code == ERROR_CODE
     assert capsys.readouterr().out.startswith("error: package:")
+
+
+def test_reverse_mode(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """С --reverse печатаются пакеты, зависящие от заданного."""
+    argv = ("--package", "D", "--repo", "repos/diamond.txt", "--test")
+    code = run_main(monkeypatch, *argv, "--reverse")
+    out = capsys.readouterr().out
+    assert code == 0
+    assert out == (
+        "Reverse dependencies of D (3):\n"
+        "  D <- B, C\n"
+        "  B <- A\n"
+        "  C <- A\n"
+        "  A <- (none)\n"
+    )
+
+
+def test_reverse_mode_nobody_depends(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """От корневого пакета никто не зависит."""
+    argv = ("--package", "A", "--repo", "repos/diamond.txt", "--test")
+    run_main(monkeypatch, *argv, "--reverse")
+    assert "Reverse dependencies of A (0):" in capsys.readouterr().out
+
+
+def test_reverse_mode_apt(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Обратные зависимости в индексе Ubuntu, с учётом виртуальных пакетов."""
+    run_main(monkeypatch, "--package", "libssl3t64", "--repo", URL, "--reverse")
+    out = capsys.readouterr().out
+    assert "  libssl3t64 <- librtmp1\n" in out

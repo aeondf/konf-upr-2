@@ -40,6 +40,7 @@ class Config(BaseModel):
     test: bool = False
     version: str | None = None
     output: str = "graph.png"
+    reverse: bool = False
 
     @field_validator("version")
     @classmethod
