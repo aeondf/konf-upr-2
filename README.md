@@ -6,8 +6,9 @@
 Программа строит граф зависимостей пакета Ubuntu (формат apt). Данные
 берутся прямо из индекса репозитория, без apt и сторонних библиотек.
 
-Сделаны этапы 1–2: параметры командной строки и их проверка, получение
-прямых зависимостей пакета из репозитория Ubuntu.
+Сделаны этапы 1–3: параметры командной строки и их проверка, получение
+зависимостей из репозитория Ubuntu, полный граф зависимостей с учётом
+циклов и тестовый режим.
 
 ## Параметры
 
@@ -55,8 +56,72 @@ Depends: libc6 (>= 2.34), libcurl4t64 (= 8.5.0-2ubuntu10), zlib1g (>= 1:1.1.4)
 без него — последняя в индексе. Если такой версии нет, программа
 покажет, какие есть.
 
+**Виртуальные пакеты.** Некоторые имена в `Depends` — не настоящие
+пакеты, а «виртуальные»: их предоставляет другой пакет через поле
+`Provides`. Например, в Ubuntu 24.04 `libssl3` переименован в
+`libssl3t64`, а старое имя осталось в его `Provides`. Программа
+подставляет настоящий пакет вместо виртуального — так делает и apt.
+
 **Ошибки:** адрес недоступен или файл не найден (404), архив повреждён,
 в файле нет пакетов, нет такого пакета, нет такой версии.
+
+## Граф зависимостей
+
+Зависимости бывают прямые (`curl` → `libcurl4t64`) и транзитивные
+(`libcurl4t64` → `libssl3t64`, значит `curl` тоже зависит от
+`libssl3t64`). Граф собирается обходом в ширину (BFS) без рекурсии:
+
+1. В очередь кладётся исходный пакет.
+2. Из очереди берётся пакет. Если он уже обработан — пропускаем.
+3. Иначе запоминаем его прямые зависимости и кладём их в очередь.
+4. Повторяем, пока очередь не пуста.
+
+**Циклы.** Пакет может через цепочку зависимостей зависеть сам от себя:
+в Ubuntu `libc6` зависит от `libgcc-s1`, а тот — от `libc6`. Шаг 2
+(«уже обработан — пропускаем») не даёт обходу зациклиться. Пакеты,
+которые входят в циклы, программа перечисляет отдельной строкой.
+
+Вывод — граф построчно, в порядке обхода:
+
+```
+$ ./run.sh --package A --repo repos/cycle.txt --test
+Dependency graph of A:
+  A -> B
+  B -> C
+  C -> A
+Packages in cycles: A, B, C
+```
+
+## Тестовый режим
+
+С флагом `--test` вместо репозитория Ubuntu читается текстовый файл.
+Пакеты называются заглавными латинскими буквами, одна строка — один
+пакет и его прямые зависимости:
+
+```
+# комментарий
+A: B C
+B: D
+C: D
+D:
+```
+
+Пакет, который встречается только в зависимостях (не описан своей
+строкой), считается пакетом без зависимостей. Ошибки: строка не по
+формату (печатается номер строки), пакет описан дважды, в файле нет
+пакетов, запрошенного пакета нет.
+
+Готовые примеры в `repos/`:
+
+| Файл | Что проверяет |
+|---|---|
+| `simple.txt` | простой граф |
+| `diamond.txt` | общая зависимость (ромб) — обрабатывается один раз |
+| `cycle.txt` | цикл A → B → C → A; D ведёт в цикл снаружи |
+| `self.txt` | пакет зависит сам от себя |
+| `complex.txt` | два цикла и пакет без описания |
+| `broken.txt` | ошибка формата |
+| `empty.txt` | файл без пакетов |
 
 ## Как запустить
 
@@ -69,36 +134,39 @@ uv run pytest                # тесты
 uv run ruff check src tests  # линтер
 sh scripts/stage1.sh         # демонстрация этапа 1
 sh scripts/stage2.sh         # демонстрация этапа 2 (нужен интернет)
+sh scripts/stage3.sh         # демонстрация этапа 3
 ```
 
 ## Пример работы
 
 ```
 $ ./run.sh --package curl --repo http://archive.ubuntu.com/ubuntu/dists/noble/main/binary-amd64/Packages.gz
-Package: curl 8.5.0-2ubuntu10
-Direct dependencies (3):
-  libc6
-  libcurl4t64
-  zlib1g
+Dependency graph of curl 8.5.0-2ubuntu10:
+  curl -> libc6, libcurl4t64, zlib1g
+  libc6 -> libgcc-s1
+  libcurl4t64 -> libbrotli1, libc6, libgssapi-krb5-2, libidn2-0, ...
+  zlib1g -> libc6
+  libgcc-s1 -> gcc-14-base, libc6
+  ...
+  gcc-14-base -> (none)
+  ...
+Packages in cycles: libc6, libgcc-s1
 
-$ ./run.sh --package docker-ce --repo https://download.docker.com/linux/ubuntu/dists/noble/stable/binary-amd64/Packages --version "5:26.0.0-1~ubuntu.24.04~noble"
-Package: docker-ce 5:26.0.0-1~ubuntu.24.04~noble
-Direct dependencies (6):
-  containerd.io
-  docker-ce-cli
-  iptables
-  libseccomp2
-  libc6
-  libsystemd0
+$ ./run.sh --package A --repo repos/complex.txt --test
+Dependency graph of A:
+  A -> B, C, D
+  B -> E
+  C -> E, F
+  D -> G
+  E -> H
+  F -> C
+  G -> H, Z
+  H -> B
+  Z -> (none)
+Packages in cycles: B, C, E, F, H
 
-$ ./run.sh --package curl --repo http://archive.ubuntu.com/ubuntu/dists/noble/main/binary-amd64/Packages.gz --version 1.0
-error: version '1.0' of 'curl' not found; available (1): 8.5.0-2ubuntu10
-
-$ ./run.sh --package a --repo repos/simple.txt --test
-error: package: 'a' must be capital Latin letters in test mode
-
-$ ./run.sh --package curl --repo ftp://example.org/Packages
-error: repo: 'ftp://example.org/Packages' is not an http(s) URL
+$ ./run.sh --package A --repo repos/broken.txt --test
+error: repos/broken.txt:2: expected 'NAME: DEPENDENCIES' with capital Latin letters, got 'b: C'
 ```
 
 ## Структура
@@ -109,6 +177,8 @@ src/depgraph/
     config.py      проверка параметров (pydantic)
     repository.py  общий интерфейс репозитория
     apt.py         чтение индекса пакетов Ubuntu
+    file_repo.py   тестовый репозиторий из файла
+    graph.py       обход в ширину и граф зависимостей
 tests/           тесты
 repos/           тестовые репозитории
 scripts/         демонстрационные скрипты
