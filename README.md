@@ -3,12 +3,16 @@
 Практическая работа №2 по дисциплине «Конфигурационное управление»,
 вариант 27.
 
-Программа строит граф зависимостей пакета Ubuntu (формат apt). Данные
-берутся прямо из индекса репозитория, без apt и сторонних библиотек.
+Программа строит граф зависимостей пакета Ubuntu (формат apt) и рисует
+его картинкой. Данные берутся прямо из индекса репозитория, без apt и
+сторонних библиотек. Картинку рисует Graphviz.
 
-Сделаны этапы 1–4: параметры командной строки и их проверка, получение
-зависимостей из репозитория Ubuntu, полный граф зависимостей с учётом
-циклов, тестовый режим и обратные зависимости.
+Сделаны все 5 этапов: параметры командной строки, получение зависимостей
+из репозитория Ubuntu, полный граф с учётом циклов и тестовый режим,
+обратные зависимости, визуализация в Graphviz и сравнение со штатными
+инструментами apt.
+
+![Граф зависимостей wget](examples/wget.png)
 
 ## Параметры
 
@@ -22,8 +26,8 @@
 | `--repo` | URL файла `Packages` репозитория или путь к тестовому репозиторию | обязателен; `http`/`https` адрес (в тестовом режиме — существующий файл) |
 | `--test` | режим тестового репозитория | флаг |
 | `--version` | версия пакета | необязателен; начинается с цифры, без пробелов |
-| `--output` | файл с картинкой графа | по умолчанию `graph.png`; расширение `.png`, папка должна существовать |
-| `--reverse` | показать обратные зависимости | флаг |
+| `--output` | файл, куда сохранить картинку графа | по умолчанию `graph.png`; расширение `.png`, папка должна существовать |
+| `--reverse` | нарисовать обратные зависимости | флаг |
 
 Параметры проверяются библиотекой pydantic. При ошибке печатается
 сообщение `error: ...` и программа завершается с кодом 1. Если не указан
@@ -80,40 +84,21 @@ Depends: libc6 (>= 2.34), libcurl4t64 (= 8.5.0-2ubuntu10), zlib1g (>= 1:1.1.4)
 **Циклы.** Пакет может через цепочку зависимостей зависеть сам от себя:
 в Ubuntu `libc6` зависит от `libgcc-s1`, а тот — от `libc6`. Шаг 2
 («уже обработан — пропускаем») не даёт обходу зациклиться. Пакеты,
-которые входят в циклы, программа перечисляет отдельной строкой.
+которые входят в циклы, на картинке обведены красным.
 
-Вывод — граф построчно, в порядке обхода:
-
-```
-$ ./run.sh --package A --repo repos/cycle.txt --test
-Dependency graph of A:
-  A -> B
-  B -> C
-  C -> A
-Packages in cycles: A, B, C
-```
+![Цикл A → B → C → A](examples/cycle.png)
 
 ## Обратные зависимости
 
-С флагом `--reverse` программа показывает не то, от чего зависит пакет,
+С флагом `--reverse` программа рисует не то, от чего зависит пакет,
 а **кто зависит от него** — прямо или через другие пакеты.
 
 Для этого все рёбра репозитория «переворачиваются»: если `A` зависит
-от `B`, получается ребро `B <- A`. Затем запускается тот же обход в
-ширину, что и для обычного графа, только по перевёрнутым рёбрам.
+от `B`, получается ребро «от `B` зависит `A`». Затем запускается тот же
+обход в ширину, что и для обычного графа, только по перевёрнутым рёбрам.
+На картинке стрелка всё равно идёт от пакета к его зависимости:
 
-```
-$ ./run.sh --package D --repo repos/diamond.txt --test --reverse
-Reverse dependencies of D (3):
-  D <- B, C
-  B <- A
-  C <- A
-  A <- (none)
-```
-
-`D <- B, C` — от `D` напрямую зависят `B` и `C`; `B <- A` — от `B`
-зависит `A`, значит `A` зависит от `D` транзитивно. Число в заголовке —
-сколько всего пакетов зависят от `D`.
+![Обратные зависимости D](examples/diamond-reverse.png)
 
 ## Тестовый режим
 
@@ -146,9 +131,111 @@ D:
 | `broken.txt` | ошибка формата |
 | `empty.txt` | файл без пакетов |
 
+## Визуализация
+
+Программа описывает граф на языке Graphviz, печатает этот текст и
+передаёт его программе `dot`, которая рисует PNG:
+
+```
+$ ./run.sh --package A --repo repos/diamond.txt --test --output diamond.png
+digraph dependencies {
+    label="Dependencies of A";
+    labelloc=t;
+    node [shape=box, style=rounded];
+    "A" [style="rounded,filled", fillcolor=lightblue];
+    "B";
+    "C";
+    "D";
+    "A" -> "B";
+    "A" -> "C";
+    "B" -> "D";
+    "C" -> "D";
+}
+Image saved to diamond.png, packages: 4
+```
+
+- `digraph` — ориентированный граф (стрелки имеют направление);
+- `"B";` — узел, то есть пакет;
+- `"A" -> "B";` — стрелка: `A` зависит от `B`;
+- исходный пакет закрашен голубым, пакеты в циклах обведены красным.
+
+Картинку рисует команда `dot -Tpng -o diamond.png` — программа
+запускает её через `subprocess`. Для этого нужен установленный Graphviz;
+если его нет, программа выводит `error: Graphviz is not installed`.
+
+### Примеры для трёх пакетов
+
+| `jq` — 6 пакетов | `wget` — 11 пакетов |
+|---|---|
+| ![jq](examples/jq.png) | ![wget](examples/wget.png) |
+
+`curl` — 32 пакета:
+
+![curl](examples/curl.png)
+
+Кто зависит от `curl` (`--reverse`):
+
+![Обратные зависимости curl](examples/curl-reverse.png)
+
+## Сравнение со штатными инструментами
+
+Для apt есть свои инструменты:
+
+- `apt-cache depends --recurse` — входит в apt, печатает все зависимости
+  списком;
+- `apt-cache rdepends` — обратные зависимости;
+- `debtree` — рисует граф зависимостей в Graphviz, как наша программа.
+
+На macOS apt нет, поэтому они запускаются в Docker-контейнере
+Ubuntu 24.04 (`sh scripts/compare.sh`), результаты лежат в
+`examples/apt/`. Чтобы сравнение было честным, в контейнере подключён
+тот же индекс (`noble main`), а у `apt-cache` выключены необязательные
+связи (`--no-recommends --no-suggests ...`).
+
+**Результат: прямые зависимости совпадают полностью.**
+
+| Пакет | Наша программа | `apt-cache depends --recurse` |
+|---|---|---|
+| `jq` | 6 пакетов, 8 рёбер | то же самое |
+| `wget` | 11 пакетов, 20 рёбер | то же самое |
+| `curl` | 32 пакета, 81 ребро | то же самое |
+
+Расхождения есть, и у каждого есть причина:
+
+1. **Виртуальные пакеты.** `apt-cache` показывает виртуальное имя
+   отдельно (`Depends: <libssl3>`, а под ним `libssl3t64`), а наша
+   программа сразу подставляет настоящий пакет. Рёбра те же, просто
+   у apt-cache в списке на 4 имени больше (`<libssl3>`, `<libgnutls30>`,
+   `<libhogweed6>`, `<libnettle8>`).
+2. **Обратные зависимости.** `apt-cache rdepends curl` находит 6
+   пакетов, наша программа — 4 прямых. Лишние у apt — `spamassassin` и
+   `ieee-data`: они требуют curl только как запасной вариант
+   (`ieee-data: Depends: wget | libwww-perl | curl`). Мы берём из
+   `a | b` первый вариант — то, что apt поставит на самом деле, — поэтому
+   curl в их граф не попадает. apt-cache перечисляет все варианты.
+3. **debtree рисует другой граф.** Сравните
+   [`examples/apt/wget-debtree.png`](examples/apt/wget-debtree.png) с
+   [`examples/wget.png`](examples/wget.png):
+   - debtree скрывает базовые пакеты `libc6`, `zlib1g` (список в
+     `/etc/debtree/endlist`), поэтому их нет на картинке;
+   - показывает и рекомендуемые пакеты (`Recommends`: `ca-certificates`,
+     `uuid-runtime`, `publicsuffix`) и идёт дальше по ним — граф
+     получается больше;
+   - показывает конфликты (красная стрелка `wget → wget-ssl`),
+     варианты `a | b` и виртуальные пакеты особыми узлами;
+   - подписывает на стрелках ограничения версий `(>= 2.16)`.
+   Наша программа рисует только обязательные зависимости (`Depends`,
+   `Pre-Depends`) без ограничений версий — так требует задание.
+4. **Версии.** В обычной системе apt читает ещё `noble-updates` и
+   `noble-security` и берёт более новую версию (curl
+   `8.5.0-2ubuntu10.16`, а не `8.5.0-2ubuntu10`). Наша программа
+   читает один индекс — тот, что указан в `--repo`.
+
 ## Как запустить
 
-Нужен Python 3.12 и [uv](https://docs.astral.sh/uv/).
+Нужны Python 3.12, [uv](https://docs.astral.sh/uv/) и
+[Graphviz](https://graphviz.org/) (`brew install graphviz` или
+`sudo apt install graphviz`).
 
 ```sh
 uv sync                      # поставить зависимости
@@ -159,49 +246,12 @@ sh scripts/stage1.sh         # демонстрация этапа 1
 sh scripts/stage2.sh         # демонстрация этапа 2 (нужен интернет)
 sh scripts/stage3.sh         # демонстрация этапа 3
 sh scripts/stage4.sh         # демонстрация этапа 4
+sh scripts/stage5.sh         # демонстрация этапа 5, картинки в examples/
+sh scripts/compare.sh        # сравнение с apt-cache и debtree (нужен Docker)
 ```
 
-## Пример работы
-
-```
-$ ./run.sh --package curl --repo http://archive.ubuntu.com/ubuntu/dists/noble/main/binary-amd64/Packages.gz
-Dependency graph of curl 8.5.0-2ubuntu10:
-  curl -> libc6, libcurl4t64, zlib1g
-  libc6 -> libgcc-s1
-  libcurl4t64 -> libbrotli1, libc6, libgssapi-krb5-2, libidn2-0, ...
-  zlib1g -> libc6
-  libgcc-s1 -> gcc-14-base, libc6
-  ...
-  gcc-14-base -> (none)
-  ...
-Packages in cycles: libc6, libgcc-s1
-
-$ ./run.sh --package A --repo repos/complex.txt --test
-Dependency graph of A:
-  A -> B, C, D
-  B -> E
-  C -> E, F
-  D -> G
-  E -> H
-  F -> C
-  G -> H, Z
-  H -> B
-  Z -> (none)
-Packages in cycles: B, C, E, F, H
-
-$ ./run.sh --package curl --repo http://archive.ubuntu.com/ubuntu/dists/noble/main/binary-amd64/Packages.gz --reverse
-Reverse dependencies of curl (6):
-  curl <- ec2-instance-connect, pollinate, ubuntu-server, ubuntu-wsl
-  ec2-instance-connect <- (none)
-  pollinate <- ubuntu-cloud-minimal, ubuntu-server, ubuntu-server-minimal
-  ubuntu-server <- (none)
-  ubuntu-wsl <- (none)
-  ubuntu-cloud-minimal <- (none)
-  ubuntu-server-minimal <- (none)
-
-$ ./run.sh --package A --repo repos/broken.txt --test
-error: repos/broken.txt:2: expected 'NAME: DEPENDENCIES' with capital Latin letters, got 'b: C'
-```
+Скрипты `stage2.sh`–`stage4.sh` показывают вывод своих этапов, поэтому
+запускать их лучше на коммите своего этапа (см. ниже).
 
 ## Структура
 
@@ -213,8 +263,10 @@ src/depgraph/
     apt.py         чтение индекса пакетов Ubuntu
     file_repo.py   тестовый репозиторий из файла
     graph.py       обход в ширину и граф зависимостей
+    dot.py         текст на языке Graphviz и картинка PNG
 tests/           тесты
 repos/           тестовые репозитории
+examples/        картинки графов и вывод штатных инструментов apt
 scripts/         демонстрационные скрипты
 run.sh           скрипт запуска
 ```
@@ -236,3 +288,4 @@ git checkout main      # вернуться к последней версии
 - Этап 2 (сбор данных) — `40b0ba1`
 - Этап 3 (основные операции) — `505b6c9`
 - Этап 4 (дополнительные операции) — `b963b04`
+- Этап 5 (визуализация) — этот коммит, хэш добавлен следующим коммитом
