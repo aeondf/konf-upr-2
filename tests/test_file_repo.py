@@ -66,3 +66,8 @@ def test_empty_file(tmp_path: Path) -> None:
 def test_names(tmp_path: Path) -> None:
     """Список пакетов включает и неописанные."""
     assert load(tmp_path, "A: B\n").names() == ["A", "B"]
+
+
+def test_no_versions(tmp_path: Path) -> None:
+    """В тестовом репозитории у пакетов нет версий."""
+    assert load(tmp_path, "A: B\n").version("A") == ""

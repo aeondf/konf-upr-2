@@ -43,6 +43,10 @@ class FileRepository(Repository):
         """Возвращает имена всех пакетов графа."""
         return list(self.packages)
 
+    def version(self, name: str) -> str:
+        """В тестовом репозитории у пакетов нет версий."""
+        return ""
+
     def _add(self, line: str, number: int) -> None:
         name, colon, rest = line.partition(":")
         names = [name.strip(), *rest.split()]

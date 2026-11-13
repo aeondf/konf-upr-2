@@ -113,6 +113,13 @@ class AptRepository(Repository):
         """Возвращает имена всех пакетов индекса."""
         return list(self.packages)
 
+    def version(self, name: str) -> str:
+        """Возвращает версию пакета, которая попала в граф."""
+        versions = self.packages.get(name)
+        if not versions:
+            return ""
+        return versions[-1].get("Version", "")
+
     def _real_name(self, name: str) -> str:
         if name in self.packages:
             return name

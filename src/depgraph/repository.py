@@ -23,3 +23,7 @@ class Repository:
     def names(self) -> list[str]:
         """Возвращает имена всех пакетов репозитория."""
         raise NotImplementedError
+
+    def version(self, name: str) -> str:
+        """Возвращает версию пакета или пустую строку, если версии нет."""
+        raise NotImplementedError

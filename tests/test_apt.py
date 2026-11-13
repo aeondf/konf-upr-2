@@ -129,3 +129,20 @@ def test_names(repository: AptRepository) -> None:
     """Список всех пакетов индекса."""
     assert "curl" in repository.names()
     assert "libssl3" not in repository.names()
+
+
+def test_version(repository: AptRepository) -> None:
+    """Версия пакета берётся из поля Version."""
+    assert repository.version("libc6") == "2.39-0ubuntu8"
+
+
+def test_version_follows_selection(repository: AptRepository) -> None:
+    """После выбора версии возвращается выбранная, а не последняя."""
+    assert repository.version("tool") == "2.0-1"
+    repository.select("tool", "1.0-1")
+    assert repository.version("tool") == "1.0-1"
+
+
+def test_version_of_missing_package(repository: AptRepository) -> None:
+    """У пакета, которого нет в индексе, версии нет."""
+    assert repository.version("nope") == ""
