@@ -1,0 +1,14 @@
+jq
+  Depends: libc6
+  Depends: libjq1
+libc6
+  Depends: libgcc-s1
+libjq1
+  Depends: libc6
+  Depends: libonig5
+libgcc-s1
+  Depends: gcc-14-base
+  Depends: libc6
+libonig5
+  Depends: libc6
+gcc-14-base

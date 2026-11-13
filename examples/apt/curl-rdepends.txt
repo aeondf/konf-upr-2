@@ -1,0 +1,8 @@
+curl
+Reverse Depends:
+  ubuntu-wsl
+  ubuntu-server
+ |spamassassin
+  pollinate
+  ieee-data
+  ec2-instance-connect

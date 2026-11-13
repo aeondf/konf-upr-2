@@ -1,0 +1,121 @@
+curl
+  Depends: libc6
+  Depends: libcurl4t64
+  Depends: zlib1g
+libc6
+  Depends: libgcc-s1
+libcurl4t64
+  Depends: libbrotli1
+  Depends: libc6
+  Depends: libgssapi-krb5-2
+  Depends: libidn2-0
+  Depends: libldap2
+  Depends: libnghttp2-14
+  Depends: libpsl5t64
+  Depends: librtmp1
+  Depends: libssh-4
+  Depends: libssl3t64
+  Depends: libzstd1
+  Depends: zlib1g
+zlib1g
+  Depends: libc6
+libgcc-s1
+  Depends: gcc-14-base
+  Depends: libc6
+libbrotli1
+  Depends: libc6
+libgssapi-krb5-2
+  Depends: libkrb5-3
+  Depends: libc6
+  Depends: libcom-err2
+  Depends: libk5crypto3
+  Depends: libkrb5support0
+libidn2-0
+  Depends: libc6
+  Depends: libunistring5
+libldap2
+  Depends: libc6
+  Depends: libgnutls30t64
+  Depends: libsasl2-2
+libnghttp2-14
+  Depends: libc6
+libpsl5t64
+  Depends: libidn2-0
+  Depends: libc6
+  Depends: libunistring5
+librtmp1
+  Depends: libc6
+  Depends: libgmp10
+  Depends: <libgnutls30>
+    libgnutls30t64
+  Depends: <libhogweed6>
+    libhogweed6t64
+  Depends: <libnettle8>
+    libnettle8t64
+  Depends: zlib1g
+libssh-4
+  Depends: libc6
+  Depends: libgssapi-krb5-2
+  Depends: <libssl3>
+    libssl3t64
+  Depends: zlib1g
+libssl3t64
+  Depends: libc6
+libzstd1
+  Depends: libc6
+gcc-14-base
+libkrb5-3
+  Depends: libkrb5support0
+  Depends: libc6
+  Depends: libcom-err2
+  Depends: libk5crypto3
+  Depends: libkeyutils1
+  Depends: libssl3t64
+libcom-err2
+  Depends: libc6
+libk5crypto3
+  Depends: libc6
+  Depends: libkrb5support0
+libkrb5support0
+  Depends: libc6
+libunistring5
+  Depends: libc6
+libgnutls30t64
+  Depends: libc6
+  Depends: libgmp10
+  Depends: libhogweed6t64
+  Depends: libidn2-0
+  Depends: libnettle8t64
+  Depends: libp11-kit0
+  Depends: libtasn1-6
+  Depends: libunistring5
+libsasl2-2
+  Depends: libsasl2-modules-db
+  Depends: libc6
+  Depends: libssl3t64
+libgmp10
+  Depends: libc6
+libhogweed6t64
+  Depends: libc6
+  Depends: libgmp10
+  Depends: libnettle8t64
+libnettle8t64
+  Depends: libc6
+libkeyutils1
+  Depends: libc6
+libp11-kit0
+  Depends: libc6
+  Depends: libffi8
+libtasn1-6
+  Depends: libc6
+libsasl2-modules-db
+  Depends: libc6
+  Depends: libdb5.3t64
+libffi8
+  Depends: libc6
+libdb5.3t64
+  Depends: libc6
+<libnettle8>
+<libssl3>
+<libgnutls30>
+<libhogweed6>

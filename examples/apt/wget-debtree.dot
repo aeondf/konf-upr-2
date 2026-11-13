@@ -1,0 +1,50 @@
+digraph "wget" {
+	rankdir=LR;
+	node [shape=box];
+	"wget" -> "libidn2-0" [color=blue,label="(>= 0.6)"];
+	"libidn2-0" -> "libunistring5" [color=blue,label="(>= 1.1)"];
+	"wget" -> "libpcre2-8-0" [color=blue,label="(>= 10.22)"];
+	"wget" -> "libpsl5t64" [color=blue,label="(>= 0.16.0)"];
+	"libpsl5t64" -> "libidn2-0" [color=blue,label="(>= 0.16)"];
+	"libpsl5t64" -> "libunistring5" [color=blue,label="(>= 1.1)"];
+	"libpsl5t64" -> "publicsuffix" [label="(>= 20150507)"];
+	"wget" -> "libssl3t64" [color=blue,label="(>= 3.0.0)"];
+	"wget" -> "libuuid1" [color=blue,label="(>= 2.16)"];
+	"libuuid1" -> "uuid-runtime";
+	"uuid-runtime" -> "libuuid1" [color=purple,style=bold];
+	"uuid-runtime" -> "init-system-helpers" [color=purple,style=bold,label="(>= 1.54~)"];
+	"uuid-runtime" -> "adduser" [color=blue];
+	"adduser" -> "passwd" [color=blue];
+	"uuid-runtime" -> "libsmartcols1" [color=blue,label="(>= 2.27~rc1)"];
+	"uuid-runtime" -> "libsystemd0" [color=blue];
+	"libsystemd0" -> "libcap2" [color=blue,label="(>= 1:2.10)"];
+	"libsystemd0" -> "libgcrypt20" [color=blue,label="(>= 1.10.0)"];
+	"libgcrypt20" -> "libgpg-error0" [color=blue,label="(>= 1.27)"];
+	"libgpg-error0" -> "libgpg-error-l10n";
+	"libsystemd0" -> "liblz4-1" [color=blue,label="(>= 0.0~r122)"];
+	"libsystemd0" -> "liblzma5" [color=blue,label="(>= 5.1.1alpha+20120614)"];
+	"libsystemd0" -> "libzstd1" [color=blue,label="(>= 1.5.5)"];
+	"uuid-runtime" -> "libuuid1" [color=blue,label="(>= 2.38.1-2~)"];
+	"wget" -> "wget-ssl" [color=red];
+	"wget" -> "ca-certificates";
+	"ca-certificates" -> "openssl" [color=blue,label="(>= 1.1.1)"];
+	"openssl" -> "libssl3t64" [color=blue,label="(>= 3.0.9)"];
+	"ca-certificates" -> "alt1":"debconf" [color=blue,label="(>= 0.5)"];
+	"alt1":"debconf-2.0" -> virt1 [dir=back,arrowtail=inv,color=green];
+	"wget" [style="setlinewidth(2)"]
+	"wget-ssl" [style=filled,fillcolor=oldlace];
+	alt1 [
+		shape = "record"
+		label = "<debconf> \{debconf\} | <debconf-2.0> debconf-2.0"
+	]
+	virt1 [
+		shape = "record"
+		style = "rounded"
+		label = "<debconf> [debconf] | <cdebconf> \{cdebconf\}"
+	]
+	"passwd" [shape=diamond];
+}
+// Excluded dependencies:
+// libc6 zlib1g
+// total size of all shown packages: 18378752
+// download size of all shown packages: 1861798

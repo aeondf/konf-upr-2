@@ -1,0 +1,31 @@
+wget
+  Depends: libc6
+  Depends: libidn2-0
+  Depends: libpcre2-8-0
+  Depends: libpsl5t64
+  Depends: libssl3t64
+  Depends: libuuid1
+  Depends: zlib1g
+libc6
+  Depends: libgcc-s1
+libidn2-0
+  Depends: libc6
+  Depends: libunistring5
+libpcre2-8-0
+  Depends: libc6
+libpsl5t64
+  Depends: libidn2-0
+  Depends: libc6
+  Depends: libunistring5
+libssl3t64
+  Depends: libc6
+libuuid1
+  Depends: libc6
+zlib1g
+  Depends: libc6
+libgcc-s1
+  Depends: gcc-14-base
+  Depends: libc6
+libunistring5
+  Depends: libc6
+gcc-14-base
