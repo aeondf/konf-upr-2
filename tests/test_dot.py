@@ -77,6 +77,15 @@ def test_reverse_arrows_point_to_dependency() -> None:
     assert '    "D" -> "B";' not in text
 
 
+def test_versions_in_labels() -> None:
+    """Версия пишется в узле второй строкой под именем пакета."""
+    graph = DependencyGraph("A", neighbours(DIAMOND))
+    text = to_dot(graph, "A", {"A": "1.0", "B": "2.0-1"})
+    assert '    "A" [label="A\\n1.0", style="rounded,filled"' in text
+    assert '    "B" [label="B\\n2.0-1"];' in text
+    assert '    "C";' in text
+
+
 @needs_graphviz
 def test_render_png(tmp_path: Path) -> None:
     """Graphviz сохраняет настоящий PNG-файл."""

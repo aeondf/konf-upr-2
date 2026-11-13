@@ -10,9 +10,11 @@ class RenderError(Exception):
     """Ошибка при рисовании картинки графа."""
 
 
-def node_style(name: str, root: str, cyclic: list[str]) -> str:
-    """Возвращает оформление узла: корень закрашен, пакеты в циклах красные."""
+def node_style(name: str, version: str, root: str, cyclic: list[str]) -> str:
+    """Возвращает оформление узла: версия, закрашенный корень, красный цикл."""
     styles = []
+    if version:
+        styles.append(f'label="{name}\\n{version}"')
     if name == root:
         styles.append('style="rounded,filled", fillcolor=lightblue')
     if name in cyclic:
@@ -20,8 +22,14 @@ def node_style(name: str, root: str, cyclic: list[str]) -> str:
     return f" [{', '.join(styles)}]" if styles else ""
 
 
-def to_dot(graph: DependencyGraph, title: str, reverse: bool = False) -> str:
+def to_dot(
+    graph: DependencyGraph,
+    title: str,
+    versions: dict[str, str] | None = None,
+    reverse: bool = False,
+) -> str:
     """Описывает граф на языке Graphviz: узлы — пакеты, стрелки — связи."""
+    versions = versions or {}
     cyclic = graph.cyclic()
     lines = [
         "digraph dependencies {",
@@ -30,7 +38,8 @@ def to_dot(graph: DependencyGraph, title: str, reverse: bool = False) -> str:
         "    node [shape=box, style=rounded];",
     ]
     for name in graph.edges:
-        lines.append(f'    "{name}"{node_style(name, graph.root, cyclic)};')
+        style = node_style(name, versions.get(name, ""), graph.root, cyclic)
+        lines.append(f'    "{name}"{style};')
     for name, neighbours in graph.edges.items():
         for other in neighbours:
             source, target = (other, name) if reverse else (name, other)

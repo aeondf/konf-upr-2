@@ -49,7 +49,8 @@ def test_prints_dot_and_saves_image(
     assert out.startswith("digraph dependencies {\n")
     assert '    label="Dependencies of curl 8.5.0-2ubuntu10";\n' in out
     assert '    "curl" -> "libcurl4t64";\n' in out
-    assert '    "libc6" [color=red];\n' in out
+    assert '    "libc6" [label="libc6\\n2.39-0ubuntu8", color=red];\n' in out
+    assert '"curl" [label="curl\\n8.5.0-2ubuntu10", style=' in out
     assert out.endswith("}\nImage saved to graph.png, packages: 6\n")
     assert images == ["graph.png"]
 
@@ -149,4 +150,6 @@ def test_reverse_mode_apt(
 ) -> None:
     """Обратные зависимости в индексе Ubuntu, с учётом виртуальных пакетов."""
     run_main(monkeypatch, "--package", "libssl3t64", "--repo", URL, "--reverse")
-    assert '    "librtmp1" -> "libssl3t64";\n' in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert '    "librtmp1" -> "libssl3t64";\n' in out
+    assert '"librtmp1" [label="librtmp1\\n2.4+20151223' in out

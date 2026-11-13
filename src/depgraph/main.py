@@ -79,7 +79,9 @@ def main() -> int:
         repository.load()
         version = repository.select(config.package, config.version)
         graph = build_graph(repository, config)
-        text = to_dot(graph, make_title(config, version), config.reverse)
+        versions = {name: repository.version(name) for name in graph.edges}
+        title = make_title(config, version)
+        text = to_dot(graph, title, versions, config.reverse)
         print(text)
         render_png(text, config.output)
     except (RepositoryError, RenderError) as error:
