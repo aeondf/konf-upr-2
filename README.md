@@ -157,7 +157,28 @@ Image saved to diamond.png, packages: 4
 - `digraph` — ориентированный граф (стрелки имеют направление);
 - `"B";` — узел, то есть пакет;
 - `"A" -> "B";` — стрелка: `A` зависит от `B`;
-- исходный пакет закрашен голубым, пакеты в циклах обведены красным.
+- исходный пакет закрашен голубым, пакеты в циклах обведены красным;
+- у реальных пакетов под именем написана версия (`label="имя\nверсия"`).
+
+Версия на картинке — та, что попала в граф: у исходного пакета —
+выбранная через `--version` (или последняя), у остальных — последняя в
+индексе. У тестовых пакетов `A`, `B`, `C` версий нет, поэтому у них
+только имя:
+
+```
+$ ./run.sh --package wget --repo http://archive.ubuntu.com/ubuntu/dists/noble/main/binary-amd64/Packages.gz
+digraph dependencies {
+    label="Dependencies of wget 1.21.4-1ubuntu4";
+    labelloc=t;
+    node [shape=box, style=rounded];
+    "wget" [label="wget\n1.21.4-1ubuntu4", style="rounded,filled", fillcolor=lightblue];
+    "libc6" [label="libc6\n2.39-0ubuntu8", color=red];
+    ...
+    "wget" -> "libc6";
+    ...
+}
+Image saved to graph.png, packages: 11
+```
 
 Картинку рисует команда `dot -Tpng -o diamond.png` — программа
 запускает её через `subprocess`. Для этого нужен установленный Graphviz;

@@ -334,6 +334,9 @@ git checkout efb2f18
 | `85845cf` | `scripts/stage5.sh` и картинки в `examples/` |
 | `edad2bf` | `scripts/compare.sh` — сравнение с `apt-cache` и `debtree` |
 | `efb2f18` | README: визуализация и сравнение |
+| `c8883ac` | у репозитория появился метод `version(name)` — версия пакета |
+| `0c93123` | версии пакетов на картинке: подпись узла `имя` + `версия` |
+| `e76f3aa` | картинки в `examples/` перерисованы с версиями |
 
 **Как запустить** (нужен Graphviz: `brew install graphviz`):
 
@@ -364,7 +367,13 @@ digraph dependencies {
 Image saved to diamond.png, packages: 4
 ```
 
-и файл `diamond.png` с картинкой.
+и файл `diamond.png` с картинкой. У тестовых пакетов версий нет, а у
+реальных версия пишется в узле под именем:
+
+```
+    "wget" [label="wget\n1.21.4-1ubuntu4", style="rounded,filled", fillcolor=lightblue];
+    "libc6" [label="libc6\n2.39-0ubuntu8", color=red];
+```
 
 **Код.** Каждый пакет — строка-узел, каждая зависимость — строка-стрелка:
 
@@ -380,6 +389,36 @@ def to_dot(graph: DependencyGraph, title: str, reverse: bool = False) -> str:
             lines.append(f'    "{source}" -> "{target}";')
     lines.append("}")
     return "\n".join(lines)
+```
+
+Версию пакета знает репозиторий — у реального это поле `Version` из
+индекса, у тестового версий нет:
+
+```python
+class AptRepository(Repository):
+    def version(self, name: str) -> str:
+        versions = self.packages.get(name)
+        if not versions:
+            return ""
+        return versions[-1].get("Version", "")
+
+
+class FileRepository(Repository):
+    def version(self, name: str) -> str:
+        return ""
+```
+
+`main()` собирает версии всех пакетов графа и передаёт их в `to_dot`,
+а там версия становится второй строкой подписи узла:
+
+```python
+versions = {name: repository.version(name) for name in graph.edges}
+text = to_dot(graph, title, versions, config.reverse)
+```
+
+```python
+if version:
+    styles.append(f'label="{name}\\n{version}"')
 ```
 
 Картинку рисует программа `dot` из Graphviz:
@@ -398,7 +437,8 @@ for line in graph.lines(arrow):
     print(f"  {line}")
 
 # стало (этап 5)
-text = to_dot(graph, make_title(config, version), config.reverse)
+versions = {name: repository.version(name) for name in graph.edges}
+text = to_dot(graph, make_title(config, version), versions, config.reverse)
 print(text)
 render_png(text, config.output)
 ```
