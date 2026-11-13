@@ -38,17 +38,6 @@ def test_bfs_unknown_package_is_leaf() -> None:
     assert bfs("Z", neighbours(DIAMOND)) == {"Z": []}
 
 
-def test_graph_lines() -> None:
-    """Граф печатается построчно, пустые зависимости — (none)."""
-    graph = DependencyGraph("A", neighbours(DIAMOND))
-    assert graph.lines() == [
-        "A -> B, C",
-        "B -> D",
-        "C -> D",
-        "D -> (none)",
-    ]
-
-
 def test_no_cycles() -> None:
     """В ромбе циклов нет."""
     assert DependencyGraph("A", neighbours(DIAMOND)).cyclic() == []
@@ -77,7 +66,7 @@ def test_reverse_graph_is_transitive() -> None:
     reverse = reverse_edges(list(DIAMOND), neighbours(DIAMOND))
     graph = DependencyGraph("D", neighbours(reverse))
     assert list(graph.edges) == ["D", "B", "C", "A"]
-    assert graph.lines("<-")[0] == "D <- B, C"
+    assert graph.edges["D"] == ["B", "C"]
 
 
 def test_reverse_graph_with_cycle() -> None:

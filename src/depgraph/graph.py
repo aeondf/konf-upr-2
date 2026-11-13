@@ -38,14 +38,6 @@ class DependencyGraph:
         self.root = root
         self.edges = bfs(root, neighbours)
 
-    def lines(self, arrow: str = "->") -> list[str]:
-        """Возвращает граф построчно: «пакет -> соседи»."""
-        result = []
-        for name, dependencies in self.edges.items():
-            targets = ", ".join(dependencies) if dependencies else "(none)"
-            result.append(f"{name} {arrow} {targets}")
-        return result
-
     def cyclic(self) -> list[str]:
         """Возвращает пакеты, которые через зависимости ведут сами к себе."""
         return [
